@@ -1,20 +1,17 @@
 # CS4470-Project_1
-1. Objective
-Getting Started: Familiarize yourself with socket programming.
-Implement: Develop a simple chat application for message exchange among remote peers.
-2. Getting Started
-Socket Programming: Beej Socket Guide: http://beej.us/guide/bgnet
-3. Implement
+
 3.1 Programming environment
 You will write C/C++ or Java code that compiles in Linux (e.g., Ubuntu) or Windows system
 NOTE: You should (1) use TCP Sockets in your peer connection implementation; (2) use the select() API
 or multi-threads for handling multiple socket connections; (3) integrate both client-side and server side
 code into one program and run on each peer.
+
 3.2 Running your program
 Your process (your program when it is running in memory) will take one command line parameters. The
 parameter indicates the port on which your process will listen for the incoming connections. For example,
 if your program is called chat, then you can run it like this: ./chat 4322, where 4322 is the listening
 port. Run your program on three computers and perform message exchange.
+
 3.3 Functionality of your program
 When launched, your process should work like a UNIX shell. It should accept incoming connections and at
 the same time provide a user interface that will offer the following command options: (Note that specific
@@ -53,6 +50,8 @@ Sender’s Port: <The port no. of the sender>
 Message: “<received message>”
 8. exit Close all connections and terminate this process. The other peers should also update their connection
 list by removing the peer that exits.
+
+
 4. Submission and Grading
 4.1 What to Submit
 Your submission should contain a zipped file – Name it as < your cin_name>.tar:
