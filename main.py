@@ -8,52 +8,12 @@
 # ========================================
 
 
-# Import the necessary modules
+#==========Libraries==================
 import socket
 import threading
 import time
 
-print("running first line...")
-
-# IP and port
-tello1_address = ('10.85.38.178', 9000)
-
-# IP and port of local computer
-local1_address = ('', 9010)
-
-
-# Create a UDP connection that we'll send the command to
-sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-
-# Bind to the local address and port
-sock1.bind(local1_address)
-
-dronemessage = ''
-
-#======================================== main =================================================
-if __name__ == '__main__':    
-    import sys
-    
-    if len(sys.argv)<2:
-        print ("Parameter error: Please assign the device")
-        exit() 
-    if sys.argv[1] == 'myip': 
-        myip() 
-    elif sys.argv[1] == 'myport' or sys.argv[1] == '3d': 
-        myport()
-    elif sys.argv[1] == 'connect' or sys.argv[1] == 'accel': 
-        connect()
-    elif sys.argv[1] == 'list' or sys.argv[1] == 'gyro': 
-        list()
-    elif sys.argv[1] == 'terminate' or sys.argv[1] == '____': 		#RPY = roll, pitch, yaw
-        terminate()
-    elif sys.argv[1] == 'send' or sys.argv[1] == 'LiDar' or sys.argv[1] == 'lidar': 
-        send()
-    elif sys.argv[1] == 'exit' or sys.argv[1] == 'LiDar' or sys.argv[1] == 'lidar': 
-        exit()
-
-#================================= 3.3 Functionality Methods ===============================================================
+#======== 3.3 Functionality Methods =========
 # help() method
 def help():
     print("Here are a list of commands:")
@@ -62,50 +22,37 @@ def help():
 
 # myip() method
 def myip():
-    print("My IP is: " + _______ )
+    try:
+        # Create a socket to get the local IP address
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.settimeout(0.1)  # Set a timeout to avoid blocking
+            s.connect(("8.8.8.8", 80))  # Connect to a public IP address
+            local_ip = s.getsockname()[0]
+            print("My IP is: " + local_ip)
+    except Exception as e:
+        print(f"Error: {e}")            
+
+# myport() method
+def myport():
+    try:
+        # Create a socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            # Bind the socket to a specific address and port
+            s.bind(("localhost", 0))  # Use port 0 to let the OS assign an available port
+            # Get the socket's port number
+            local_port = s.getsockname()[1]
+            print("The program runs on port number :", str(local_port))
+    except Exception as e:
+        print(f"Error: {e}")
 
 
 # connect() method
-def connect():
+def connect(destination, port):
     #** insert method here **
-
-
-# list() method
-def list():
-    #** insert code here**
-
-
-# terminate() method
-def terminate():
-    #** insert code here**
-    
-
-# send() method
-def send():
-    #** insert code here**
-    
-    
-# exit() method
-def exit():
-    #** insert code here**
-
-#=============================== Send/Receive methods below ====================================================
-# Send the message to Tello and allow for a delay in seconds
-def send(message, delay):
-    # Try to send the message otherwise print the exception
-    try:
-        sock1.sendto(message.encode(), tello1_address)
-
-        print("Sending message: " + message)
-    except Exception as e:
-        print("Error sending: 1" + str(e))
-
-    # Delay for a user-defined period of time
-    time.sleep(delay)
-
+    print()
 
 # Receive the message 
-def receive():
+def receive(sock1):
     # Continuously loop and listen for incoming messages
     while True:
         # Try to receive the message otherwise print the exception
@@ -122,19 +69,99 @@ def receive():
             print("Error receiving: 2" + str(e))
             break
 
+# list() method
+def list():
+    #** insert code here**
+    print()
 
-receive()
 
-receiveThread = threading.Thread(target=receive)
-receiveThread.daemon = True
-receiveThread.start()
+# terminate() method
+def terminate(connection_id):
+    #** insert code here**
+    print()
+    
 
-send("Hello Alex, From David", 2)
+# send() method
+def send(connection_id, message, sock1):    
+    # Try to send the message otherwise print the exception
+    try:
+        sock1.sendto(message.encode(), connection_id)
 
-print("Code completed successfully!")
+        print("Sending message: " + message)
+    except Exception as e:
+        print("Error sending: 1" + str(e))    
 
-# Close the socket
-sock1.close()
+#============ SETUP ============
+# # IP and port
+# first_address = ('10.85.38.178', 9000)
+
+# # IP and port of local computer
+# local1_address = ('', 9010)
+
+# # Create a UDP connection that we'll send the command to
+# sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+# # Bind to the local address and port
+# sock1.bind(local1_address)
+
+message = ''
+
+while(True):                
+    print()
+    print("==================================================================")
+    print("Setting up...")
+    print()
+
+    #print("==================================================================")
+
+    user_input = input("input your command: ").split()
+
+    if len(user_input) != 0 and user_input[0] == "exit":
+        print('exit')
+        print("Closing program...")
+        exit()
+
+    elif user_input[0] == "help":
+        help()
+
+    elif user_input[0] == 'myip': 
+        myip() 
+
+    elif user_input[0] == 'myport': 
+        myport()
+
+    elif len(user_input) == 3 and user_input[0] == 'connect': 
+        #connect(destination, port)
+        connect(user_input[1], user_input[2])
+
+    elif user_input[0] == 'list': 
+        list()
+
+    elif len(user_input) == 2 and user_input[0] == 'terminate':
+        #terminate(connection_id)
+        terminate(user_input[1])
+
+    elif len(user_input) == 3 and user_input[0] == 'send': 
+        #send(connection_id, msg)
+        send(user_input[1], user_input[2])
+
+    else:
+        print("Try again")
+
+#=============================== Send/Receive methods below ====================================================
+
+# receive()
+
+# receiveThread = threading.Thread(target=receive)
+# receiveThread.daemon = True
+# receiveThread.start()
+
+# send("Hello Alex, From David", 2)
+
+# print("Code completed successfully!")
+
+# # Close the socket
+# sock1.close()
 
 
 
