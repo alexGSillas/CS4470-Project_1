@@ -1,64 +1,64 @@
-import random
-import time
+import select
+import socket
 
+def receive_data(sock):
+    try:
+        data = sock.recv(1024)
+        if not data:
+            return None  # No data received, client has disconnected
+        return data.decode('utf-8')
+    except Exception as e:
+        print(f"Error while receiving data: {e}")
+        return None
+
+def send_data(sock, message):
+    try:
+        sock.send(message.encode('utf-8'))
+    except Exception as e:
+        print(f"Error while sending data: {e}")
 
 def main():
-    # helps the user with rules and hints
-    args = input("Enter '-help' for rules and hints: ").split()
-    if len(args) != 0 and args[0].lower() == "-help":
-        help_menu()
-        return
+    # Create a list of sockets to monitor for readability
+    sockets_to_monitor = []
 
-    # starts the game
-    print("You are in a cube-shaped room with a door on three of the walls.")
-    print("You have no idea how you got here.")
-    print("You just know you need to leave as soon as possible.")
-    print("Choose a door.\n")
+    # Create a server socket and add it to the list
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(("localhost", 12345))
+    server_socket.listen(5)
+    sockets_to_monitor.append(server_socket)
 
-    # main 3 doors
-    print("----------------")
-    print("  Door 1")
-    print("  Door 2")
-    print("  Door 3")
-    print("----------------")
+    print("Server is listening on port 12345...")
 
-    # input from the user to choose a door
-    door_num = int(input())
+    while True:
+        # Use select to monitor sockets for readability
+        readable, _, _ = select.select(sockets_to_monitor, [], [])
 
-    # if entered door 1, then mathGame1, mathGame2, and coinFlip minigames will play
-    if door_num == 1:
-        math_game1()
-    # if you enter door 2, then the Memory and typingMinigame minigames will play
-    elif door_num == 2:
-        memory()
-    # if you enter door 3, then trivia and rockPaperScissor minigames will play
-    elif door_num == 3:
-        trivia()
+        for sock in readable:
+            if sock is server_socket:
+                # If the server socket is readable, accept a new connection
+                client_socket, client_address = server_socket.accept()
+                sockets_to_monitor.append(client_socket)
+                print(f"Accepted connection from {client_address}")
+            else:
+                # If a client socket is readable, receive and process data
+                received_message = receive_data(sock)
+                if received_message is None:
+                    # Client has disconnected
+                    print(f"Connection closed for {sock.getpeername()}")
+                    sockets_to_monitor.remove(sock)
+                    sock.close()
+                else:
+                    print(f"Received data from {sock.getpeername()}: {received_message}")
+                    
+                    # Process the received data (you can replace this with your logic)
+                    response = "Server received your message: " + received_message
 
+                    # Send a response back to the sender
+                    send_data(sock, response)
 
-# displays the rules and hints
-def help_menu():
-    print("Help menu: Enter a 1, 2, or 3 to enter a door.")
-    print("Rules: Enter a number to start the game.")
-    print("You will need to enter complete sentences, letters, or numbers to proceed through the game.")
-    print("Some games will require luck and no skill.")
-
-
-# Example minigame functions (you can define these as needed)
-def math_game1():
-    # Implement your math game logic here
-    pass
-
-
-def memory():
-    # Implement your memory game logic here
-    pass
-
-
-def trivia():
-    # Implement your trivia game logic here
-    pass
-
+    # Close all sockets
+    for sock in sockets_to_monitor:
+        sock.close()
 
 if __name__ == "__main__":
     main()
