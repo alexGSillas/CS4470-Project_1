@@ -15,6 +15,7 @@ import time
 
 
 # ======== 3.3 Functionality Methods =========
+# Done!
 # help() method
 def help():
     print("Here are a list of commands:")
@@ -27,7 +28,7 @@ def help():
     print(" send \t\t send messages to peers")
     print(" exit \t\t close all connections")
 
-
+# Done!
 # myip() method
 def myip():
     try:
@@ -42,7 +43,7 @@ def myip():
 
     # myport() method
 
-
+# Done!
 def myport():
     try:
         # Create a socket
@@ -57,14 +58,18 @@ def myport():
 
 
 # broken connect() method
+#Self-connections and duplicate connections should be flagged with suitable error messages
 def connect(destination, port):
+
+    my_address = ('', 9010)
+
     try:
         # Create a socket object
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Connect to the specified IP address and port
         client_socket.connect((destination, port))
-
+        client_socket.bind(myip().local_ip,myport().local_port)
         # Return the connected socket
         print("The connection to peer "+str(destination)+"is successfully established")
     except Exception as e:
@@ -95,7 +100,7 @@ def receive(sock1):
 # list() method
 def list():
     # ** insert code here**
-    print()
+    print("id: IP address \t Port No.")
 
 
 # terminate() method
