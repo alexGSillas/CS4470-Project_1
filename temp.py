@@ -1,5 +1,6 @@
 import select
 import socket
+import threading
 
 def receive_data(sock):
     try:
@@ -17,48 +18,39 @@ def send_data(sock, message):
     except Exception as e:
         print(f"Error while sending data: {e}")
 
-def main():
-    # Create a list of sockets to monitor for readability
-    sockets_to_monitor = []
+def client_thread(client_socket, address):
+    print(f"Accepted connection from {address}")
+    while True:
+        received_message = receive_data(client_socket)
+        if received_message is None:
+            # Client has disconnected
+            print(f"Connection closed for {address}")
+            client_socket.close()
+            break
 
-    # Create a server socket and add it to the list
+        print(f"Received data from {address}: {received_message}")
+
+        # Process the received data (you can replace this with your logic)
+        response = input(">>")
+
+        # Send a response back to the sender
+        send_data(client_socket, response)
+
+def main():
+    # Create a server socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("localhost", 12345))
+    server_socket.bind(("", 12345))
     server_socket.listen(5)
-    sockets_to_monitor.append(server_socket)
 
     print("Server is listening on port 12345...")
 
     while True:
-        # Use select to monitor sockets for readability
-        readable, _, _ = select.select(sockets_to_monitor, [], [])
+        # Accept a new connection
+        client_socket, client_address = server_socket.accept()
 
-        for sock in readable:
-            if sock is server_socket:
-                # If the server socket is readable, accept a new connection
-                client_socket, client_address = server_socket.accept()
-                sockets_to_monitor.append(client_socket)
-                print(f"Accepted connection from {client_address}")
-            else:
-                # If a client socket is readable, receive and process data
-                received_message = receive_data(sock)
-                if received_message is None:
-                    # Client has disconnected
-                    print(f"Connection closed for {sock.getpeername()}")
-                    sockets_to_monitor.remove(sock)
-                    sock.close()
-                else:
-                    print(f"Received data from {sock.getpeername()}: {received_message}")
-                    
-                    # Process the received data (you can replace this with your logic)
-                    response = "Server received your message: " + received_message
-
-                    # Send a response back to the sender
-                    send_data(sock, response)
-
-    # Close all sockets
-    for sock in sockets_to_monitor:
-        sock.close()
+        # Start a new thread to handle the client
+        client_handler = threading.Thread(target=client_thread, args=(client_socket, client_address))
+        client_handler.start()
 
 if __name__ == "__main__":
     main()
