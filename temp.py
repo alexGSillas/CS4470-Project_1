@@ -1,48 +1,69 @@
-import select
 import socket
 import threading
+import subprocess
 
-def receive_data(sock):
+# Global variables to store IP address and port
+server_ip = ""
+server_port = 0
+
+def run_shell_command(command):
     try:
-        data = sock.recv(1024)
-        if not data:
-            return None  # No data received, client has disconnected
-        return data.decode('utf-8')
+        # Run the shell command and capture the output
+        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        output = result.stdout + result.stderr
+        return output
     except Exception as e:
-        print(f"Error while receiving data: {e}")
-        return None
+        return str(e)
 
-def send_data(sock, message):
-    try:
-        sock.send(message.encode('utf-8'))
-    except Exception as e:
-        print(f"Error while sending data: {e}")
+def client_thread(client_socket, client_address):
+    global server_ip, server_port
 
-def client_thread(client_socket, address):
-    print(f"Accepted connection from {address}")
+    print(f"Accepted connection from {client_address}")
+
     while True:
-        received_message = receive_data(client_socket)
-        if received_message is None:
-            # Client has disconnected
-            print(f"Connection closed for {address}")
-            client_socket.close()
+        try:
+            data = client_socket.recv(1024).decode('utf-8')
+            if not data:
+                break
+
+            # Handle user commands
+            if data.strip() == "help":
+                response = "Available commands:\n1. help\n2. myip\n3. myport\n"
+            elif data.strip() == "myip":
+                response = f"Server IP address: {server_ip}\n"
+            elif data.strip() == "myport":
+                response = f"Server is listening on port: {server_port}\n"
+            else:
+                # Run shell command and return the output
+                response = run_shell_command(data)
+
+            # Send the response back to the client
+            client_socket.send(response.encode('utf-8'))
+        except Exception as e:
+            print(f"Error: {e}")
             break
 
-        print(f"Received data from {address}: {received_message}")
-
-        # Process the received data (you can replace this with your logic)
-        response = input(">>")
-
-        # Send a response back to the sender
-        send_data(client_socket, response)
+    print(f"Connection closed for {client_address}")
+    client_socket.close()
 
 def main():
-    # Create a server socket
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("", 12345))
-    server_socket.listen(5)
+    global server_ip, server_port
 
-    print("Server is listening on port 12345...")
+    # Get the server's IP address
+    server_ip = socket.gethostbyname(socket.gethostname())
+
+    # Define the server port
+    server_port = 12345
+
+    # Create a socket
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Bind the socket to the server address and port
+    server_socket.bind((server_ip, server_port))
+
+    # Listen for incoming connections
+    server_socket.listen(5)
+    print(f"Server is listening on {server_ip}:{server_port}...")
 
     while True:
         # Accept a new connection
