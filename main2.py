@@ -2,6 +2,7 @@
 import socket
 import threading
 import select
+import sys
 
 #======== 3.3 Functionality Methods =========
 def help():
@@ -18,6 +19,19 @@ def myip():
 def myport():
     print(PORT)
 
+def exit():
+    try:
+        for sock in client_sockets:
+            try:
+                sock.close()
+            except Exception as e:
+                print(f"error closing socket: {str(e)}")
+
+        sys.exit(0)
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        sys.exit(1)
+
 # list() method #TODO
 def list():
     
@@ -28,53 +42,73 @@ def list():
     
 # connect() method===============
 def connect(destination, port):
-    # This command establishes a NEW TCP connection to the specified <destination> <port no>. 
-    HEADER_LENGTH = 10
-
-    IP = "192.168.6.133"
-    PORT = 1234
-    my_username = input("Username: ")
-
-    # Create a socket
-    # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
-    # socket.SOCK_STREAM - TCP, conection-based, socket.SOCK_DGRAM - UDP, connectionless, datagrams, socket.SOCK_RAW - raw IP packets
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to a given ip and port
-    client_socket.connect((destination, port))
-
-    # Set connection to non-blocking state, so .recv() call won;t block, just return some exception we'll handle
-    client_socket.setblocking(False)
-
-    # Prepare username and header and send them
-    # We need to encode username to bytes, then count number of bytes and prepare header of fixed size, that we encode to bytes as well
-    username = my_username.encode('utf-8')
-    username_header = f"{len(username):<{HEADER_LENGTH}}".encode('utf-8')
-    client_socket.send(username_header + username)
-
-    # On receiving any message from the peer, the receiver should display 
-    # the received message along with the sender information
-    # (Eg. If a process on (sender)
-    # 192.168.21.20 sends a message to a process on 
-    # 192.168.21.21 then the output on
-    # 192.168.21.21 when receiving a message should display as shown:
-
-
-    # a) Any attempt to connect to an invalid IP should be rejected and suitable error message should be displayed.
-    #code() #TODO
-    print("Invalid IP. Try again.")
-        
-    # b.2) failure in connections between two peers should be indicated by both the peers using suitable messages.
-    #code() #TODO
-    print("Invalid IP. Try again.")
     
-    # c.1) Self-connectionsconnections should be flagged with suitable error messages.
-    #code() #TODO
-    print("Self-connections . Try again.")
+    try: 
+        # This command establishes a NEW TCP connection to the specified <destination> <port no>. 
+        HEADER_LENGTH = 10
 
-    # c.2) duplicate connections should be flagged with suitable error messages.
-    #code() #TODO
-    print("Duplicate connections . Try again.")
+        # IP = "192.168.6.133"
+        # PORT = 1234
+        my_username = IP + ":" + str(PORT)
+
+        # Create a socket
+        # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
+        # socket.SOCK_STREAM - TCP, conection-based, socket.SOCK_DGRAM - UDP, connectionless, datagrams, socket.SOCK_RAW - raw IP packets
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Connect to a given ip and port
+        client_socket.connect((destination, port))
+
+        # Set connection to non-blocking state, so .recv() call won;t block, just return some exception we'll handle
+        client_socket.setblocking(False)
+
+        # Prepare username and header and send them
+        # We need to encode username to bytes, then count number of bytes and prepare header of fixed size, that we encode to bytes as well
+        print("MY_USERNAME: ", my_username)
+        
+        username = my_username.encode('utf-8')
+        
+        print("USERNAME ENcoded: ", username)
+        username_header = f"{len(username):<{HEADER_LENGTH}}".encode('utf-8')
+        
+        print("LENGTH: ", username_header)
+        
+        client_socket.send(username_header + username)
+        
+        print("sent following: ", username_header + username)
+        
+        clients.append(client_socket)
+        new_clients.append(((new_clients[-1][0] + 1), (destination, port), client_socket))
+
+        
+        # threading.Thread(target=send_message, daemon=False, args=(client_socket,)).start()
+
+        # On receiving any message from the peer, the receiver should display 
+        # the received message along with the sender information
+        # (Eg. If a process on (sender)
+        # 192.168.21.20 sends a message to a process on 
+        # 192.168.21.21 then the output on
+        # 192.168.21.21 when receiving a message should display as shown:
+    except Exception as e:
+        new_clients.remove((new_clients[-1][0] - 1), (destination, port), client_socket)
+        print(f"Error connecting socket: {str(e)}")
+
+
+    # # a) Any attempt to connect to an invalid IP should be rejected and suitable error message should be displayed.
+    # #code() #TODO
+    # print("Invalid IP. Try again.")
+        
+    # # b.2) failure in connections between two peers should be indicated by both the peers using suitable messages.
+    # #code() #TODO
+    # print("Invalid IP. Try again.")
+    
+    # # c.1) Self-connectionsconnections should be flagged with suitable error messages.
+    # #code() #TODO
+    # print("Self-connections . Try again.")
+
+    # # c.2) duplicate connections should be flagged with suitable error messages.
+    # #code() #TODO
+    # print("Duplicate connections . Try again.")
 
 # send() method
 def send(connection_id, message):        
@@ -83,43 +117,19 @@ def send(connection_id, message):
     # the number 3 when command “list” is used. 
     # 
     
-    
-    # connection_id = clients[0][0]      
     dest = 0
-    dest_port = 0
+    dest_port = 0    
+    client_socket = new_clients[0][2]
     
-    # print("connection_id")
-    # print(connection_id)
-    # print(type(connection_id)) #str
-    
-    # print("clients 1st num")
-    # print(clients[0][0]) # 1
-    # print(type(clients[0][0])) # int
-    
-    # print("clients 1st num")
-    # print(clients[1][0]) # 2 
-    # print(type(clients[1][0])) # int
-    
-    # print("clients[1][1][0]")
-    # print(clients[1][1][0]) # 192.168.6.133
-    # print(type(clients[1][1][0])) # str
-    
-    # print("clients[1][1][1]")
-    # print(clients[1][1][1])       # 59839
-    # print(type(clients[1][1][1])) # int
-    
-    client_socket = socket
-    
-    for i in range(len(clients)):
-        if int(connection_id) == clients[i][0]:   
-            dest = clients[i][1][0] # str
-            dest_port = clients[i][1][1]  # int
+    for i in range(0, len(new_clients)):                
+        if int(connection_id) == new_clients[i][0]: 
+            print("if statement HIT")  
+            dest_port = new_clients[i][1][1]  # int
             client_socket = new_clients[i][2]
     
     #=================== new ==========================
         # If message is not empty - send it
     if message:
-
         # Encode message to bytes, prepare header and convert to bytes, like for username above, then send
         message = message.encode('utf-8')
         message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
@@ -132,7 +142,6 @@ def send(connection_id, message):
 def receive_message(client_socket):
 
     try:
-
         # Receive our "header" containing message length, it's size is defined and constant
         message_header = client_socket.recv(HEADER_LENGTH)
 
@@ -154,6 +163,10 @@ def receive_message(client_socket):
         # and that's also a cause when we receive an empty message
         return False    
 
+# def send_message(client_socket):
+#     continue
+        
+
 def user_input():
     while(True):
         user_input = input(">> ").split()
@@ -162,7 +175,7 @@ def user_input():
             help()
 
         elif len(user_input) == 3 and user_input[0] == 'connect': 
-            connect(user_input[1], user_input[2])
+            connect(user_input[1], int(user_input[2]))
 
         elif user_input[0] == 'list': 
             list()
@@ -194,6 +207,7 @@ def server(count):
 
                 # Client should send his name right away, receive it
                 user = receive_message(client_socket)
+                print("USER: ", user)
 
                 # If False - client disconnected before he sent his name
                 if user is False:
@@ -212,6 +226,9 @@ def server(count):
                 print('Accepted new connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
                 print('\n>> ')
                 
+                
+                client_socket.send(my_username, server_socket)
+                
     #<socket.socket fd=324, family=2, type=1, proto=0, laddr=('192.168.6.133', 1234), raddr=('192.168.6.133', 52156)>: {'header': b'4         ', 'data': b'dave'
 
             # Else existing socket is sending a message
@@ -220,18 +237,18 @@ def server(count):
                 # Receive message
                 message = receive_message(notified_socket)
 
-                # If False, client disconnected, cleanup
-                if message is False:
-                    print('Closed connection from: {}'.format(client_sockets[notified_socket]['data'].decode('utf-8')))
-                    print('\n>> ')
+                # # If False, client disconnected, cleanup
+                # if message is False:
+                #     print('Closed connection from: {}'.format(client_sockets[notified_socket]['data'].decode('utf-8')))
+                #     print('\n>> ')
 
-                    # Remove from list for socket.socket()
-                    sockets_list.remove(notified_socket)
+                #     # Remove from list for socket.socket()
+                #     sockets_list.remove(notified_socket)
 
-                    # Remove from our list of users
-                    del client_sockets[notified_socket]
+                #     # Remove from our list of users
+                #     del client_sockets[notified_socket]
 
-                    continue
+                #     continue
 
                 # Get user by notified socket, so we will know who sent the message
                 user = client_sockets[notified_socket]
@@ -267,9 +284,9 @@ def server(count):
 HEADER_LENGTH = 10
 
 IP = "192.168.6.133"
-PORT = 1234
-count = 1
+PORT = 5554
 
+count = 1
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind((IP, PORT))
