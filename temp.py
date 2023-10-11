@@ -1,152 +1,260 @@
-import select
+# ==========Libraries==================
 import socket
 import threading
-import subprocess
+import select
+import sys
 
-# Global variables to store IP address and port
-server_ip = ""
-server_port = 0
 
-# Dictionary to store active connections
-connections = {}
-connection_id = 1
+# ======== 3.3 Functionality Methods =========
+def help():
+    print("Here are a list of commands:")
+    print(" connect \t connect to another peer")
+    print(" list \t\t list all IP addresses")
+    print(" terminate \t terminate the connection")
+    print(" send \t\t send messages to peers")
+    print(" exit \t\t close all connections")
 
-def run_shell_command(command):
+
+def myip():
     try:
-        # Run the shell command and capture the output
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        output = result.stdout + result.stderr
-        return output
+
+
+        return IP
     except Exception as e:
         return str(e)
 
-def client_thread(client_socket, client_address):
-    global server_ip, server_port, connections, connection_id
+def myport():
+    try:
 
-    print(f"Accepted connection from {client_address}")
+        return PORT
+    except Exception as e:
+        print(f"Error: {e}")
+# list() method #TODO
+def list():
+    print("id: IP address Port No.")
 
-    while True:
-        try:
-            data = client_socket.recv(1024).decode('utf-8')
-            if not data:
-                break
+    for i in clients:
+        print(i)
 
-            # Handle user commands
-            command_parts = data.strip().split()
-            if not command_parts:
-                continue
+def exit():
+    try:
 
-            command = command_parts[0]
+        for sock in client_sockets:
+            try:
+                sock.close()
+            except exception as e:
+                print(f"error closing socket: {str(e)}")
 
-            if command == "help":
-                response = "Available commands:\n1. help\n2. myip\n3. myport\n4. connect <destination> <port>\n5. list\n6. terminate <connection_id>\n7. send <connection_id> <message>\n8. exit\n"
-            elif command == "myip":
-                response = f"Server IP address: {server_ip}\n"
-            elif command == "myport":
-                response = f"Server is listening on port: {server_port}\n"
-            elif command == "connect":
-                if len(command_parts) != 3:
-                    response = "Usage: connect <destination> <port>\n"
-                else:
-                    destination = command_parts[1]
-                    port = int(command_parts[2])
+        sys.exit(0)
+    except Exception as e:
+        # Handle exceptions or errors here
+        print(f"An error occurred: {str(e)}")
+        sys.exit(1)
 
-                    # Check for self-connection and duplicate connections
-                    if destination == server_ip and port == server_port:
-                        response = "Error: Self-connection is not allowed.\n"
-                    elif (destination, port) in connections.values():
-                        response = "Error: Duplicate connection.\n"
-                    else:
-                        try:
-                            # Try to establish a new connection
-                            new_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                            new_socket.connect((destination, port))
+# connect() method===============
+def connect(destination, port):
+    # This command establishes a NEW TCP connection to the specified <destination> <port no>.
+    HEADER_LENGTH = 10
 
-                            # Add the new connection to the dictionary
-                            connections[connection_id] = (destination, port, new_socket)
-
-                            response = f"Connected to {destination}:{port} (Connection ID: {connection_id})\n"
-                            connection_id += 1
-                        except Exception as e:
-                            response = f"Error: {e}\n"
-            elif command == "list":
-                response = "Active connections:\n"
-                for conn_id, (dest, port, _) in connections.items():
-                    response += f"{conn_id}: {dest} {port}\n"
-            elif command == "terminate":
-                if len(command_parts) != 2:
-                    response = "Usage: terminate <connection_id>\n"
-                else:
-                    try:
-                        conn_id = int(command_parts[1])
-                        if conn_id in connections:
-                            connections[conn_id][2].close()
-                            del connections[conn_id]
-                            response = f"Connection {conn_id} terminated\n"
-                        else:
-                            response = f"Error: Invalid connection ID {conn_id}\n"
-                    except ValueError:
-                        response = "Error: Invalid connection ID\n"
-            elif command == "send":
-                if len(command_parts) < 3:
-                    response = "Usage: send <connection_id> <message>\n"
-                else:
-                    try:
-                        conn_id = int(command_parts[1])
-                        if conn_id in connections:
-                            message = " ".join(command_parts[2:])
-                            dest, _, sock = connections[conn_id]
-                            sock.send(message.encode('utf-8'))
-                            response = f"Message sent to {conn_id}\n"
-                        else:
-                            response = f"Error: Invalid connection ID {conn_id}\n"
-                    except ValueError:
-                        response = "Error: Invalid connection ID\n"
-            elif command == "exit":
-                # Close all connections and terminate the server
-                for _, (_, _, sock) in connections.items():
-                    sock.close()
-                server_socket.close()
-                print("Server closed.")
-                return
-            else:
-                response = run_shell_command(data)
-
-            # Send the response back to the client
-            client_socket.send(response.encode('utf-8'))
-        except Exception as e:
-            print(f"Error: {e}")
-            break
-
-    print(f"Connection closed for {client_address}")
-    client_socket.close()
-
-def main():
-    global server_ip, server_port
-
-    # Get the server's IP address
-    server_ip = socket.gethostbyname(socket.gethostname())
-
-    # Define the server port
-    server_port = 12345
+    IP = myip()
+    PORT = myport()
+    my_username = input("Username: ")
 
     # Create a socket
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
+    # socket.SOCK_STREAM - TCP, conection-based, socket.SOCK_DGRAM - UDP, connectionless, datagrams, socket.SOCK_RAW - raw IP packets
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # Bind the socket to the server address and port
-    server_socket.bind((server_ip, server_port))
+    # Connect to a given ip and port
+    client_socket.connect((destination, port))
 
-    # Listen for incoming connections
-    server_socket.listen(5)
-    print(f"Server is listening on {server_ip}:{server_port}...")
+    # Set connection to non-blocking state, so .recv() call won;t block, just return some exception we'll handle
+    client_socket.setblocking(False)
 
-    while True:
-        # Accept a new connection
-        client_socket, client_address = server_socket.accept()
+    # Prepare username and header and send them
+    # We need to encode username to bytes, then count number of bytes and prepare header of fixed size, that we encode to bytes as well
+    username = my_username.encode('utf-8')
+    username_header = f"{len(username):<{HEADER_LENGTH}}".encode('utf-8')
+    client_socket.send(username_header + username)
 
-        # Start a new thread to handle the client
-        client_handler = threading.Thread(target=client_thread, args=(client_socket, client_address))
-        client_handler.start()
+    # On receiving any message from the peer, the receiver should display
+    # the received message along with the sender information
+    # (Eg. If a process on (sender)
+    # 192.168.21.20 sends a message to a process on
+    # 192.168.21.21 then the output on
+    # 192.168.21.21 when receiving a message should display as shown:
 
-if __name__ == "__main__":
-    main()
+    # a) Any attempt to connect to an invalid IP should be rejected and suitable error message should be displayed.
+    # code() #TODO
+    print("Invalid IP. Try again.")
+
+    # b.2) failure in connections between two peers should be indicated by both the peers using suitable messages.
+    # code() #TODO
+    print("Invalid IP. Try again.")
+
+    # c.1) Self-connectionsconnections should be flagged with suitable error messages.
+    # code() #TODO
+    print("Self-connections . Try again.")
+
+    # c.2) duplicate connections should be flagged with suitable error messages.
+    # code() #TODO
+    print("Duplicate connections . Try again.")
+
+
+# HELPERS ================================================
+# Handles message receiving
+def receive_message(client_socket):
+    try:
+
+        # Receive our "header" containing message length, it's size is defined and constant
+        message_header = client_socket.recv(HEADER_LENGTH)
+
+        # If we received no data, client gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)
+        if not len(message_header):
+            return False
+
+        # Convert header to int value
+        message_length = int(message_header.decode('utf-8').strip())
+
+        # Return an object of message header and message data
+        return {'header': message_header, 'data': client_socket.recv(message_length)}
+
+    except:
+
+        # If we are here, client closed connection violently, for example by pressing ctrl+c on his script
+        # or just lost his connection
+        # socket.close() also invokes socket.shutdown(socket.SHUT_RDWR) what sends information about closing the socket (shutdown read/write)
+        # and that's also a cause when we receive an empty message
+        return False
+
+
+def user_input():
+    while (True):
+        user_input = input(">> ").split()
+        # ===============================================
+        if len(user_input) != 0 and user_input[0] == "help":
+            help()
+
+        elif len(user_input) == 3 and user_input[0] == 'connect':
+            connect(user_input[1], user_input[2])
+
+        elif user_input[0] == 'list':
+            list()
+
+        elif user_input[0] == 'myip':
+            print(myip())
+
+        elif user_input[0] == 'myport':
+            print(myport())
+        elif user_input[0] == 'exit':
+            exit()
+        else:
+            print("Try again")
+
+
+def server(count):
+    while (True):
+
+        read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
+
+        # Iterate over notified sockets
+        for notified_socket in read_sockets:
+
+            # If notified socket is a server socket - new connection, accept it
+            if notified_socket == server_socket:
+
+                # Accept new connection
+                # That gives us new socket - client socket, connected to this given client only, it's unique for that client
+                # The other returned object is ip/port set
+                client_socket, client_address = server_socket.accept()
+
+                # Client should send his name right away, receive it
+                user = receive_message(client_socket)
+
+                # If False - client disconnected before he sent his name
+                if user is False:
+                    continue
+
+                # Add accepted socket to select.select() list
+                sockets_list.append(client_socket)
+
+                # Also save username and username header
+                client_sockets[client_socket] = user
+                count += 1
+                clients.append((count, client_address))
+
+                print('Accepted new connection from {}:{}, username: {}'.format(*client_address,
+                                                                                user['data'].decode('utf-8')))
+                print('\n>> ')
+
+            # <socket.socket fd=324, family=2, type=1, proto=0, laddr=('192.168.6.133', 1234), raddr=('192.168.6.133', 52156)>: {'header': b'4         ', 'data': b'dave'
+
+            # Else existing socket is sending a message
+            else:
+
+                # Receive message
+                message = receive_message(notified_socket)
+
+                # If False, client disconnected, cleanup
+                if message is False:
+                    print('Closed connection from: {}'.format(client_sockets[notified_socket]['data'].decode('utf-8')))
+                    print('\n>> ')
+
+                    # Remove from list for socket.socket()
+                    sockets_list.remove(notified_socket)
+
+                    # Remove from our list of users
+                    del client_sockets[notified_socket]
+
+                    continue
+
+                # Get user by notified socket, so we will know who sent the message
+                user = client_sockets[notified_socket]
+
+                # Message received from 192.168.21.20
+                # Sender’s Port: <The port no. of the sender>
+                # Message: “<received message>
+
+                print(
+                    f'Received message from {user["data"].decode("utf-8")}\nMessage: {message["data"].decode("utf-8")}')
+                print('\n>> ')
+
+                # Iterate over connected clients and broadcast message
+                for client_socket in client_sockets:
+
+                    # But don't sent it to sender
+                    if client_socket != notified_socket:
+                        # Send user and message (both with their headers)
+                        # We are reusing here message header sent by sender, and saved username header send by user when he connected
+                        client_socket.send(user['header'] + user['data'] + message['header'] + message['data'])
+
+        # It's not really necessary to have this, but will handle some socket exceptions just in case
+        for notified_socket in exception_sockets:
+            # Remove from list for socket.socket()
+            sockets_list.remove(notified_socket)
+
+            # Remove from our list of users
+            del client_sockets[notified_socket]
+
+
+# ===========MAIN========================
+HEADER_LENGTH = 10
+
+IP = "192.168.1.69"
+PORT = 1234
+count = 1
+
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server_socket.bind((IP, PORT))
+server_socket.listen()
+sockets_list = [server_socket]
+client_sockets = {}  # this holds socket objects that are difficult to access info
+clients = []  # this holds tuples which is easier to access info
+clients.append((count, IP, PORT))
+
+print(f'Listening for connections on {IP}:{PORT}...')
+
+threading.Thread(target=user_input, daemon=False).start()
+
+threading.Thread(target=server, daemon=True, args=(count,)).start()
