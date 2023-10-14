@@ -300,18 +300,20 @@ def server(count):
                 # Receive message
                 message = receive_message(notified_socket)
                 print('message: ',message)
-                print(f"Revecied message from {user['data'].decode('utf-8')}: {message['data'].decode('utf-8')}")
+
                 if message is False:
-                    print(f"closed connection from {clients[notified_socket]['data'].decode('utf-8')}")
+                    print(f"closed connection from a scoket")
                     sockets_list.remove(notified_socket)
                     del clients[notified_socket]
                     continue
-                user = clients[notified_socket]
+                #user = clients[notified_socket]
                 print(f"Revecied message from {user['data'].decode('utf-8')}: {message['data'].decode('utf-8')}")
 
                 for client_socket in clients:
                     if client_socket != notified_socket:
-                        client_socket.send(user['header'] + user['data'] + message['header'] + message['data'])
+                        print(client_socket)
+                        #send(client_socket[0],user['header'] + user['data'] + message['header'] + message['data'])
+                        send(client_socket[0], "temp")
 
                 # # If False, client disconnected, cleanup
                 # if message is False:
@@ -344,6 +346,7 @@ def server(count):
                     if client_socket != notified_socket:
                         # Send user and message (both with their headers)
                         # We are reusing here message header sent by sender, and saved username header send by user when he connected
+                        print(client_socket)
                         client_socket.send(user['header'] + user['data'] + message['header'] + message['data'])
 
         # It's not really necessary to have this, but will handle some socket exceptions just in case
@@ -358,13 +361,13 @@ def server(count):
 # ===========MAIN========================
 HEADER_LENGTH = 10
 
-IP = "192.168.1.69"
-#PORT = 10000
+IP = '127.0.0.1'
+PORT = 20000
 
 count = 1
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server_socket.bind((IP, 0))
+server_socket.bind((IP, PORT))
  # Use port 0 to let the OS assign an available port
 # Get the socket's port number
 PORT = server_socket.getsockname()[1]
