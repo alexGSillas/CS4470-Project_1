@@ -39,10 +39,13 @@ def exit_program():
     try:
 
         for _, _, client_socket in new_clients:
-
-
+            if client_socket[0] != 1 and len(new_clients)<1:
+                mes = "Closing connection"
+                client_socket.send(mes.encode('utf-8'))
             client_socket.close()
         server_socket.close()
+        threading.Thread(target=user_input, daemon=False)
+        threading.Thread(target=server, daemon=False, args=(count,))
         sys.exit(0)
     except Exception as e:
         print(f"An error occurred: {str(e)}")
@@ -98,7 +101,7 @@ def send(connection_id, message):
 
         for i in range(0, len(new_clients)):
             if int(connection_id) == new_clients[i][0]:
-                print("if statement HIT")
+                print("Message sent to ID:",connection_id)
                 dest_port = new_clients[i][1][1]  # int
                 client_socket = new_clients[i][2]
 
@@ -152,45 +155,48 @@ def user_input():
 
 
 def server(count):
-    while True:
+    try:
+        while True:
 
-        read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
-        for notified_socket in read_sockets:
-            if notified_socket == server_socket:
-                client_socket, client_address = server_socket.accept()
+            read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
+            for notified_socket in read_sockets:
+                if notified_socket == server_socket:
+                    client_socket, client_address = server_socket.accept()
 
-                user = receive_message(client_socket)
-                if user is False:
-                    continue
-                sockets_list.append(client_socket)
-                count += 1
-                new_clients.append((count, client_address, client_socket))
-                print(
-                    f'Accepted new connection from {client_address[0]}:{client_address[1]}, username: {user["data"].decode("utf-8")}')
-            else:
-                message = receive_message(notified_socket)
-                if message is False:
-                    print(f"Closed connection from a socket")
-                    sockets_list.remove(notified_socket)
-                    new_clients.remove(next((client for client in new_clients if client[2] == notified_socket), None))
-                    continue
+                    user = receive_message(client_socket)
+                    if user is False:
+                        continue
+                    sockets_list.append(client_socket)
+                    count += 1
+                    new_clients.append((count, client_address, client_socket))
+                    print(
+                        f'Accepted new connection from {client_address[0]}:{client_address[1]}, username: {user["data"].decode("utf-8")}')
+                else:
+                    message = receive_message(notified_socket)
+                    if message is False:
+                        print(f"Closed connection from a socket:",notified_socket[0])
+                        sockets_list.remove(notified_socket)
+                        new_clients.remove(next((client for client in new_clients if client[2] == notified_socket), None))
+                        continue
+                    user = next((client for client in new_clients if client[2] == notified_socket), None)
+                    if user:
+                        print(
+                            f"Received message from {user[1][0]}:{user[1][1]} \nSender's port {user[2].getpeername()}\nMessage: {message['data'].decode('utf-8')}")
+
+                        # for client_socket in sockets_list:
+                        #     if client_socket != notified_socket:
+                        #         m = "hi!!!"
+                        #         d = m.encode('utf-8')
+                        #         client_socket.send(d)
+            for notified_socket in exception_sockets:
+                sockets_list.remove(notified_socket)
                 user = next((client for client in new_clients if client[2] == notified_socket), None)
                 if user:
-                    print(
-                        f"Received message from {user[1][0]}:{user[1][1]} \nSender's port {user[2].getpeername()}\nMessage: {message['data'].decode('utf-8')}")
-
-                    # for client_socket in sockets_list:
-                    #     if client_socket != notified_socket:
-                    #         m = "hi!!!"
-                    #         d = m.encode('utf-8')
-                    #         client_socket.send(d)
-        for notified_socket in exception_sockets:
-            sockets_list.remove(notified_socket)
-            user = next((client for client in new_clients if client[2] == notified_socket), None)
-            if user:
-                print(f"Closed connection from {user[1][0]}:{user[1][1]}")
-                new_clients.remove(user)
-
+                    print(f"Closed connection from {user[1][0]}:{user[1][1]}")
+                    new_clients.remove(user)
+    except Exception as e:
+        server_socket.close()
+        print("")
 
 HEADER_LENGTH = 10
 IP = socket.gethostbyname(socket.gethostname())
@@ -211,6 +217,6 @@ print(f'Listening for connections on {IP}:{PORT}...')
 
 try:
     threading.Thread(target=user_input, daemon=False).start()
-    threading.Thread(target=server, daemon=True, args=(count,)).start()
+    threading.Thread(target=server, daemon=False, args=(count,)).start()
 except Exception as e:
     print(str(e))
